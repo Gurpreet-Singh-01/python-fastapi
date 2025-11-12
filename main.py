@@ -1,6 +1,4 @@
-def main():
-    print("Hello from python-backend-fastapi!")
-
+import uvicorn
 
 if __name__ == "__main__":
-    main()
+    uvicorn.run(app="app.app:app", port=4000, reload=True)
