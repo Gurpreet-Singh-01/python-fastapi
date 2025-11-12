@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.exceptions import RequestValidationError
 from app.utils.responses import APIError, APIResponse
-
+from app.schema import PostCreate
 app = FastAPI()
 
 
@@ -8,6 +9,18 @@ app = FastAPI()
 async def api_error_handler(request: Request, exc: APIError):
     return exc.to_response()
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # Extract raw Pydantic validation details
+    validation_errors = exc.errors()  # this is the same list you see in FastAPI's default response
+
+    # Build your custom error response with the same details
+    custom_error = APIError(
+        status_code=422,
+        message="Validation failed",
+        errors=validation_errors  # directly include Pydantic details here
+    )
+    return custom_error.to_response()
 text_posts = {
     1: {"title": "Post 1", "content": "This is the content of post 1."},
     2: {"title": "Post 2", "content": "Exploring how FastAPI handles requests."},
@@ -52,3 +65,11 @@ def get_post_by_id(id: str):
         raise APIError(message="id not found", status_code=404)
 
     return APIResponse(status_code=202, data=text_posts.get(id), message="Posts Fetched Successfully").to_response()
+
+
+@app.post("/posts")
+def create_post(post: PostCreate):
+    new_post= {"title": post.title, "content": post.content}
+    text_posts[max(text_posts.keys()) + 1] = new_post
+    
+    return APIResponse(status_code=201, data=new_post, message="Post Created Successfully").to_response()

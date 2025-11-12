@@ -27,12 +27,14 @@ class APIError(Exception):
         self,
         status_code: int,
         message: str = "Something went wrong",
+        errors: Optional[List[Any]] = None,
         stack: Optional[str] = None,
     ):
         self.status_code = status_code
         self.success = False
         self.data = None
         self.message = message
+        self.errors = errors or []
         self.stack = stack
         super().__init__(message)
 
@@ -45,5 +47,6 @@ class APIError(Exception):
                 "success": False,
                 "message": self.message,
                 "data": None,
+                "errors":self.errors
             },
         )
