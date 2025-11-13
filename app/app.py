@@ -2,7 +2,17 @@ from fastapi import FastAPI, Request, HTTPException
 from fastapi.exceptions import RequestValidationError
 from app.utils.responses import APIError, APIResponse
 from app.schema import PostCreate
-app = FastAPI()
+from app.db import Post, create_db_and_tables, get_async_session
+from sqlalchemy.ext.asyncio import AsyncSession
+from contextlib import asynccontextmanager
+
+
+@asynccontextmanager
+async def lifespan(app:FastAPI):
+    await create_db_and_tables()
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 
 @app.exception_handler(APIError)
@@ -11,10 +21,8 @@ async def api_error_handler(request: Request, exc: APIError):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    # Extract raw Pydantic validation details
-    validation_errors = exc.errors()  # this is the same list you see in FastAPI's default response
+    validation_errors = exc.errors()  
 
-    # Build your custom error response with the same details
     custom_error = APIError(
         status_code=422,
         message="Validation failed",
@@ -41,7 +49,7 @@ def root():
 
 
 @app.get('/post')
-def get_all_posts(limit:int = None):
+def get_all_posts(limit:int = None)-> APIResponse:
     posts_list = list(text_posts.values())
     if limit:
         if limit <= len(text_posts):
@@ -58,17 +66,16 @@ def get_all_posts(limit:int = None):
             status_code=200,
             ).to_response()
 
-
 @app.get("/post/{id}")
-def get_post_by_id(id: str):
+def get_post_by_id(id: str)-> APIResponse:
     if id not in text_posts:
         raise APIError(message="id not found", status_code=404)
 
     return APIResponse(status_code=202, data=text_posts.get(id), message="Posts Fetched Successfully").to_response()
 
 
-@app.post("/posts")
-def create_post(post: PostCreate):
+@app.post("/posts") 
+def create_post(post: PostCreate) -> APIResponse:
     new_post= {"title": post.title, "content": post.content}
     text_posts[max(text_posts.keys()) + 1] = new_post
     
