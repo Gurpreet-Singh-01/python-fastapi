@@ -17,7 +17,8 @@ class APIResponse(BaseModel):
             content={
                 "success": self.success,
                 "message": self.message,
-                "data": self.data
+                "data": self.data,
+                "status_code":self.status_code
             }
         )
 
